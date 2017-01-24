@@ -8,16 +8,24 @@ from gentle.transcription import Transcription
 class FullTranscriber():
 
     def __init__(self, resources, nthreads=2):
+        print "Flag 1: in FullTranscriber initialization"
         self.available = False
         if nthreads <= 0: return
-        if not os.path.exists(resources.full_hclg_path): return
-
+        # TODO: Having some trouble with line below. seems to return false even with the file present.
+        # if not os.path.exists(resources.full_hclg_path): return
+        # print resources.full_hclg_path
+        # print resources.nnet_gpu_path
+        # print resources.proto_langdir
         queue = kaldi_queue.build(resources, nthreads=nthreads)
         self.mtt = MultiThreadedTranscriber(queue, nthreads=nthreads)
         self.available = True
+        print "Flag 2: at end of FullTranscriber initialization"
+
 
     def transcribe(self, wavfile, progress_cb=None, logging=None):
+        print "Flag 3: inside FullTranscriber transcribe method"
         words = self.mtt.transcribe(wavfile, progress_cb=progress_cb)
+        print "Flag 4: inside FullTranscriber transcribe method after MultiThreadedTranscriber transcribe call"
         return self.make_transcription_alignment(words)
 
     @staticmethod

@@ -21,7 +21,7 @@ class ForcedAligner():
 
     def transcribe(self, wavfile, progress_cb=None, logging=None):
         words = self.mtt.transcribe(wavfile, progress_cb=progress_cb)
-
+        print words
         # Clear queue (would this be gc'ed?)
         for i in range(self.nthreads):
             k = self.queue.get()

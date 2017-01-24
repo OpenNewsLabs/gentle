@@ -8,44 +8,64 @@ from multiprocessing.pool import ThreadPool as Pool
 
 class MultiThreadedTranscriber:
     def __init__(self, kaldi_queue, chunk_len=20, overlap_t=2, nthreads=4):
+        print "Flag: in MultiThreadedTranscriber initialization "
         self.chunk_len = chunk_len
         self.overlap_t = overlap_t
         self.nthreads = nthreads
-            
         self.kaldi_queue = kaldi_queue
+        # print self.chunk_len
+        # print self.overlap_t 
+        # print self.nthreads
+        # print self.kaldi_queue
+        print "Flag: end of MultiThreadedTranscriber initialization "
 
     def transcribe(self, wavfile, progress_cb=None):
+        print "Flag 3.1: in MultiThreadedTranscriber transcribe function"
         wav_obj = wave.open(wavfile, 'r')
         duration = wav_obj.getnframes() / float(wav_obj.getframerate())
         n_chunks = int(math.ceil(duration / float(self.chunk_len - self.overlap_t)))
 
         chunks = []
-
+        print "Flag 3.2: in MultiThreadedTranscriber transcribe function - after def chunks"
         def transcribe_chunk(idx):
+            print "Flag 3.4.1: in transcribe_chunk"
             wav_obj = wave.open(wavfile, 'r')
             start_t = idx * (self.chunk_len - self.overlap_t)
+
             # Seek
             wav_obj.setpos(int(start_t * wav_obj.getframerate()))
+            print "Flag 3.4...: in of transcribe_chunk"
             # Read frames
             buf = wav_obj.readframes(int(self.chunk_len * wav_obj.getframerate()))
 
-            k = self.kaldi_queue.get()
+            k = self.kaldi_queue.get()    
+            print k     
             k.push_chunk(buf)
+            print "FLAGGGGG"
             ret = k.get_final()
             k.reset()
             self.kaldi_queue.put(k)
-
             chunks.append({"start": start_t, "words": ret})
             logging.info('%d/%d' % (len(chunks), n_chunks))
+            print "Flag 3.4...: before if end of transcribe_chunk"
             if progress_cb is not None:
                 progress_cb({"message": ' '.join([X['word'] for X in ret]),
                              "percent": len(chunks) / float(n_chunks)})
 
-
+        print "Flag 3.3: in MultiThreadedTranscriber transcribe function - after def transcribe_chunk"
+        # TODO: this is causing an issue!
+        # print n_chunks
+        # print self.nthreads
         pool = Pool(min(n_chunks, self.nthreads))
+        print "Flag 3.4"
+        # print type(transcribe_chunk)
+        print n_chunks
+        print range(n_chunks)
         pool.map(transcribe_chunk, range(n_chunks))
+
+        print "Flag 3.5"
         pool.close()
-        
+        print "Flag 3.6"
         chunks.sort(key=lambda x: x['start'])
 
         # Combine chunks
@@ -81,7 +101,7 @@ class MultiThreadedTranscriber:
         words.sort(key=lambda word: word.start)
         words.append(transcription.Word(word="__dummy__"))
         words = [words[i] for i in range(len(words)-1) if not words[i].corresponds(words[i+1])]
-
+        print "Flag 3..: in MultiThreadedTranscriber transcribe function - before returning words"
         return words
 
 
